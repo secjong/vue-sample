@@ -4,6 +4,7 @@ import Home from './views/Home.vue'
 import Test from './views/Test.vue'
 import Add from './views/Add.vue'
 import ParentComponent from './views/ParentComponent.vue'
+import SJSQL from './views/SJSQL.vue'
 
 Vue.use(Router)
 
@@ -38,6 +39,11 @@ export default new Router({
       path: '/add',
       name: 'add',
       component: Add
+    },
+    {
+      path: '/SJSQL',
+      name: 'SJSQL',
+      component: SJSQL
     }
   ]
 })

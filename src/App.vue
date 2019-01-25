@@ -5,7 +5,8 @@
       <router-link to="/about">About</router-link> |
       <router-link to="/test">Test</router-link> |
       <router-link to="/parent_component">ParentComponent</router-link> |
-      <router-link to="/add">Add</router-link>
+      <router-link to="/add">Add</router-link> |
+      <router-link to="/SJSQL">SJSQL</router-link>
     </div>
     <router-view/>
   </div>
