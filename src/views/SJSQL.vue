@@ -1,9 +1,10 @@
 <template>
     <div class="SJSQL">
+        {{changeCompleted}}
         <h1>선택한 테이블 : {{tableName}}</h1>
-        <TableList :tableArr="tableArr" @emitTableDesc="passTableDesc" @emitTableData="passTableData" @emitTableName="passTableName" />
+        <TableList :tableArr="tableArr" @emitTableDesc="passTableDesc" @emitTableData="passTableData" @emitTableName="passTableName" :changeCompleted="changeCompleted" />
         <FieldList :fieldArr="fieldArr" />
-        <ButtonList :fieldArr="fieldArr" :dataArr="dataArr" />
+        <ButtonList :fieldArr="fieldArr" :dataArr="dataArr" :tableName="tableName" @emitChangeCompleted="passChangeCompleted" />
         <DataList :dataArr="dataArr" :fieldArr="fieldArr" :tableName="tableName" />
         <CustomQuery />
     </div>
@@ -29,7 +30,8 @@ export default {
             tableArr: [],
             fieldArr: [],
             dataArr: [],
-            tableName: ''
+            tableName: '',
+            changeCompleted: false
         }
     },
     methods: {
@@ -44,13 +46,13 @@ export default {
         // 테이블 이름을 사용
         passTableName: function(tableName){
             this.tableName = tableName;
-        }
-    },
-    mounted: function () {
-        this.$nextTick(function () {
-            // Code that will run only after the
-            // entire view has been rendered
-            // 모든 테이블 가져오기
+        },
+        // TableList 컴포넌트로 
+        passChangeCompleted: function(){
+            this.changeCompleted = !this.changeCompleted;
+        },
+        // Table List 가져오기
+        getTableList: function(){
             window.axios.get("http://localhost:3000/SJSQL/tables", {})
             .then((response) => {
                 this.tableArr = response.data;
@@ -58,8 +60,21 @@ export default {
             .catch(function(err){
                 console.log(err);
             });
+        }
+    },
+    mounted: function () {
+        this.$nextTick(function () {
+            // Code that will run only after the
+            // entire view has been rendered
+            this.getTableList();
         })
+    },
+    watch: {
+        changeCompleted: function(){
+            this.getTableList();
+        }
     }
+
 }
 </script>
 

@@ -21,7 +21,8 @@
 export default {
     name: 'table_list',
     props: {
-        tableArr: Array
+        tableArr: Array,
+        changeCompleted: Boolean
     },
     data: function () {
         return {
@@ -52,6 +53,11 @@ export default {
 
             // 테이블 이름 올려주기
             this.$emit("emitTableName", tableName);
+        }
+    },
+    watch: {
+        changeCompleted: function(){
+            this.getTableInfo(this.tableName);    
         }
     }
 }

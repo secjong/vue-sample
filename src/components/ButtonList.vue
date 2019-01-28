@@ -18,7 +18,7 @@
             <b-container fluid>
                 <b-row class="mb-1 text-center">
                     <label>Table name : </label>
-                    <b-form-input v-model="tableName" type="text" placeholder="Enter Table Name"></b-form-input>
+                    <b-form-input v-model="newTableName" type="text" placeholder="Enter Table Name"></b-form-input>
                 </b-row>
                 
                 <ul>
@@ -43,15 +43,20 @@
                                 <b-form-checkbox-group v-model="params[index].constraints" :options="options">
                                 </b-form-checkbox-group>
                             </b-form-group>
+                            <b-button size="sm" variant="danger" @click="removeRow(index)">remove row</b-button>
                         </b-row>
                     </li>
                     <!--// 반복되는 부분(컬럼) -->
                 </ul>
+
+                {{newTableName}}
+                <br />
+                {{params}}
                
                 <b-button-group size="sm">
                     <b-button @click="addRow" variant="success">Add Row</b-button>
-                    <b-button @click="submit" variant="primary">Submit</b-button>
-                    <b-button @click="reset" variant="danger">Reset</b-button>
+                    <b-button @click="submitTable" variant="primary">Submit</b-button>
+                    <b-button @click="resetTable" variant="danger">Reset</b-button>
                 </b-button-group>
 
             </b-container>
@@ -63,9 +68,6 @@
             </div>
         </b-modal>
         <!--// create table modal -->
-
-
-<!-- { "Field": "mNo", "Type": "int(11)", "Null": "NO", "Key": "PRI", "Default": null, "Extra": "auto_increment" } -->
 
         <!-- add data modal -->
         <b-modal v-model="show_add"
@@ -93,17 +95,19 @@
                                 <span v-if="item.Default"> / {{item.Default}}</span>
                                 <span v-if="item.Extra"> / {{item.Extra}}</span>
                             </label>
-                            <b-form-input v-model="obj[item.Field]" type="text"></b-form-input>
+                            <b-form-input v-model="obj[item.Field]" type="text" v-if="item.Key === 'PRI'" disabled="disabled"></b-form-input>
+                            <b-form-input v-model="obj[item.Field]" type="text" v-else></b-form-input>
                         </b-row>
                     </li>
                     <!--// 반복되는 부분(컬럼) -->
                 </ul>
-               
+
+                <!-- {{tableName}} -->
                 {{obj}}
 
                 <b-button-group size="sm">
-                    <b-button @click="submit" variant="primary">Submit</b-button>
-                    <b-button @click="reset" variant="danger">Reset</b-button>
+                    <b-button @click="submitData" variant="primary">Submit</b-button>
+                    <b-button @click="resetData" variant="danger">Reset</b-button>
                 </b-button-group>
 
             </b-container>
@@ -124,7 +128,8 @@ export default {
     name: 'data_list',
     props: {
         dataArr: Array,
-        fieldArr: Array
+        fieldArr: Array,
+        tableName: String
     },
     data: function () {
         return {
@@ -132,7 +137,7 @@ export default {
                 { variant: 'primary', caption: 'create', event: this.create },
                 { variant: 'danger', caption: 'truncate', event: this.truncate },
                 { variant: 'warning', caption: 'edit', event: this.edit },
-                { variant: 'secondary', caption: 'delete', event: this.delete },
+                { variant: 'secondary', caption: 'drop', event: this.drop },
                 { variant: 'success', caption: 'add', event: this.add },
             ],
             variants: [
@@ -151,7 +156,7 @@ export default {
                 {text: 'not null', value: 'not null'},
                 {text: 'auto_increment', value: 'auto_increment'},
             ],
-            tableName: '',
+            newTableName: '',
             params: [],
             obj: {}
         }
@@ -161,15 +166,57 @@ export default {
             this.show_create = true;
         },
         truncate: function(){
-            this.show_create = true;
+            if(this.tableName === ''){
+                alert("잘라낼 테이블을 먼저 선택해주세요.");
+                return;
+            }
+            var flag = confirm("정말 잘라내시겠습니까?");
+            if(!flag){
+                return;
+            }
+
+            window.axios.put("http://localhost:3000/SJSQL/tables/" + this.tableName, {})
+            .then((response) => {
+                console.log(response);
+                // 성공인 경우
+                alert(this.tableName + " 테이블을 잘라냈습니다.");
+                this.$emit("emitChangeCompleted", response.data);
+            })
+            .catch(function(err){
+                alert("테이블 잘라내기에 실패했습니다.");
+                console.log(err);
+            });
         },
         edit: function(){
-            this.show_create = true;
+            alert("준비중인 기능입니다.");
         },
-        delete: function(){
-            this.show_create = true;
+        drop: function(){
+            if(this.tableName === ''){
+                alert("삭제할 테이블을 먼저 선택해주세요.");
+                return;
+            }
+            var flag = confirm("정말 삭제하시겠습니까?");
+            if(!flag){
+                return;
+            }
+            
+            window.axios.delete("http://localhost:3000/SJSQL/tables/" + this.tableName, {})
+            .then((response) => {
+                console.log(response);
+                // 성공인 경우
+                alert(this.tableName + " 테이블을 드랍했습니다.");
+                location.reload();
+            })
+            .catch(function(err){
+                alert("테이블 드랍에 실패했습니다.");
+                console.log(err);
+            });
         },
         add: function(){
+            if(this.tableName === ''){
+                alert("데이터를 추가할 테이블을 먼저 선택해주세요.");
+                return;
+            }
             var obj = {};
             for(var i = 0; i < this.fieldArr.length; i+=1){
                 var key = this.fieldArr[i].Field;
@@ -178,6 +225,9 @@ export default {
             this.obj = obj;
             this.show_add = true;
         },
+
+
+        // 테이블 생성시 필드 추가
         addRow: function(){
             this.params.push({
                 colName: undefined,
@@ -186,28 +236,62 @@ export default {
                 constraints: undefined,
             });
         },
-        submit: function(){
-            console.log(this.params);
+        // 테이블 생성
+        submitTable: function(){
             var data = {
                 params : this.params,
-                tableName : this.tableName
+                tableName : this.newTableName
             };
             window.axios.post("http://localhost:3000/SJSQL/tables", data)
             .then((response) => {
                 console.log(response);
                 // 성공인 경우
-                alert(this.tableName + " 테이블 생성에 성공했습니다.");
+                alert(this.newTableName + " 테이블 생성에 성공했습니다.");
                 location.reload();
             })
             .catch(function(err){
+                alert("테이블 생성에 실패했습니다.");
                 console.log(err);
             });
         },
-        reset: function(){
-
+        // 테이블 생성 폼 리셋
+        resetTable: function(){
+            this.newTableName = '';
+            this.params = [];
         },
+        // 테이블 데이터 삭제시 삭제된 행 삭제
         deleteRow(index) {
             this.inputs.splice(index,1);
+        },
+        // 데이터 추가
+        submitData: function(){
+            console.log("this.obj : " , this.obj);
+            var data = {
+                params : this.obj
+            };
+            console.log("this.tableName : ", this.tableName);
+            window.axios.post("http://localhost:3000/SJSQL/tables/" + this.tableName, data)
+            .then((response) => {
+                console.log(response);
+                // 성공인 경우
+                alert("데이터 삽입에 성공했습니다.");
+                location.reload();
+            })
+            .catch(function(err){
+                alert("데이터 삽입에 실패했습니다.");
+                console.log(err);
+            });
+        },
+        // 데이터 추가 폼 리셋
+        resetData : function(){
+            // obj 의 모든 value를 지우기
+            for(var key in this.obj){
+                this.obj[key] = '';
+            }
+        },
+        // 테이블 생성 행 삭제
+        removeRow: function(index){
+            this.params.splice(index, 1);
         }
     }
 }
@@ -227,3 +311,13 @@ export default {
 </style>
 
 
+
+
+
+{
+    tableName = "aaa",
+    params = [
+        {colname: "col1", type: "int", size: "10", constraints: ["primary key", "not null", "auto_increment"]},
+        {colname: "col1", type: "int", size: "10"}
+    ]
+}
