@@ -73,6 +73,17 @@ export default {
         changeCompleted: function(){
             this.getTableList();
         }
+    },
+    created: function(){
+        // 테이블 드랍된 경우 발생
+        this.$EventBus.$on("emitTableDropCompleted", () => {
+            // 이벤트 발생시키기
+            this.getTableList();
+        });
+        // 테이블이 생성된 경우 발생
+        this.$EventBus.$on("tableCreateCompleted", () => {
+            this.getTableList();
+        });
     }
 
 }

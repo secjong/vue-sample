@@ -10,6 +10,7 @@ window.axios = Axios;
 
 Vue.use(BootstrapVue);
 Vue.config.productionTip = false
+Vue.prototype.$EventBus = new Vue();
 
 new Vue({
   router,

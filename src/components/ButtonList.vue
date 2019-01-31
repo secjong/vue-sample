@@ -120,6 +120,94 @@
         </b-modal>
         <!--// add data modal -->
 
+        <!-- edit table modal -->
+        <b-modal v-model="show_edit"
+                title="Edit Table" 
+                size="lg"
+                :header-bg-variant="headerBgVariant"
+                :header-text-variant="headerTextVariant"
+                :body-bg-variant="bodyBgVariant"
+                :body-text-variant="bodyTextVariant"
+                :footer-bg-variant="footerBgVariant"
+                :footer-text-variant="footerTextVariant">
+            <b-container fluid>
+                <b-row class="mb-1 text-center">
+                    <h2>Table name : {{tableName}}</h2>
+                </b-row>
+                <ul>
+                    {{editFieldArr}}
+                    <!-- 반복되는 부분(컬럼) -->
+                    <li v-for="(item, index) in editFieldArr" :key="item.id">
+                        <b-row class="mb-1 text-center">
+                            <b-col cols="2">
+                                <label>Field Name</label>
+                                <b-form-input v-model="item.Field" type="text"></b-form-input>
+                            </b-col>
+                            <b-col cols="2">
+                                <label>Type</label>
+                                <b-form-select :options="variants" v-model="item.Type" />
+                            </b-col>
+                            <b-col cols="2">
+                                <label>Nullable</label>
+                                <b-form-input v-model="item.Null" type="text"></b-form-input>
+                            </b-col>
+                            <b-col cols="2">
+                                <label>Key</label>
+                                <b-form-input v-model="item.Key" type="text"></b-form-input>
+                            </b-col>
+                            <b-col cols="2">
+                                <label>Default</label>
+                                <b-form-input v-model="item.Default" type="text"></b-form-input>
+                            </b-col>
+                            <b-col cols="2">
+                                <label>Extra</label>
+                                <b-form-input v-model="item.Extra" type="text"></b-form-input>
+                            </b-col>
+                        </b-row>
+                        <b-row>
+                            <span v-if="item.constraints">
+                                <span v-for="(obj) in item.constraints" :key="obj.id">
+                                    <span v-for="(val, key) in obj" :key="key">
+                                        <p>val : {{val}}</p>
+                                        <p>key : {{key}}</p>
+                                        <span v-if="key === 'Key'">
+                                            <label>primary key</label>
+                                            <input type="checkbox" name="Key" :v-model="val" />
+                                        </span>
+                                        <span v-if="key === 'Null'">
+                                            <label>not null</label>
+                                            <input type="checkbox" name="Null" :v-model="val" />
+                                        </span>
+                                        <span v-if="key === 'Extra'">
+                                            <label>auto_increment</label>
+                                            <input type="checkbox" name="Extra" :v-model="val" />
+                                        </span>
+                                    </span>
+                                </span>
+                            </span>
+                            
+                            <b-button size="sm" variant="danger" @click="removeEditRow(index)">remove row</b-button>
+                        </b-row>
+                    </li>
+                    <!--// 반복되는 부분(컬럼) -->
+                </ul>
+
+                <b-button-group size="sm">
+                    <b-button @click="editRow" variant="success">Edit Row</b-button>
+                    <b-button @click="submitTable" variant="primary">Submit</b-button>
+                    <b-button @click="resetTable" variant="danger">Reset</b-button>
+                </b-button-group>
+
+            </b-container>
+            <div slot="modal-footer" class="w-100">
+                <p class="float-left">Modal Footer Content</p>
+                <b-btn size="sm" class="float-right" variant="primary" @click="show_edit=false">
+                Close
+                </b-btn>
+            </div>
+        </b-modal>
+        <!--// edit table modal -->
+
     </div>
 </template>
 
@@ -141,10 +229,11 @@ export default {
                 { variant: 'success', caption: 'add', event: this.add },
             ],
             variants: [
-                'INT', 'DOUBLE', 'CHAR', 'VARCHAR', 'DATE'
+                'INT', 'DOUBLE', 'CHAR', 'VARCHAR', 'DATETIME'
             ],
             show_create: false,
             show_add: false,
+            show_edit: false,
             headerBgVariant: 'dark',
             headerTextVariant: 'light',
             bodyBgVariant: 'light',
@@ -156,9 +245,15 @@ export default {
                 {text: 'not null', value: 'not null'},
                 {text: 'auto_increment', value: 'auto_increment'},
             ],
+            editOptions: [
+                {text: 'PRI', value: 'Key'},
+                {text: 'OK', value: 'Null'},
+                {text: 'auto_increment', value: 'Extra'},
+            ],
             newTableName: '',
             params: [],
-            obj: {}
+            obj: {},
+            editFieldArr: []
         }
     },
     methods: {
@@ -188,7 +283,11 @@ export default {
             });
         },
         edit: function(){
-            alert("준비중인 기능입니다.");
+            if(this.tableName === ''){
+                alert("수정할 테이블을 먼저 선택해주세요.");
+                return;
+            }
+            this.show_edit = true;
         },
         drop: function(){
             if(this.tableName === ''){
@@ -205,7 +304,7 @@ export default {
                 console.log(response);
                 // 성공인 경우
                 alert(this.tableName + " 테이블을 드랍했습니다.");
-                location.reload();
+                this.$EventBus.$emit('emitTableDropCompleted');
             })
             .catch(function(err){
                 alert("테이블 드랍에 실패했습니다.");
@@ -247,7 +346,8 @@ export default {
                 console.log(response);
                 // 성공인 경우
                 alert(this.newTableName + " 테이블 생성에 성공했습니다.");
-                location.reload();
+                this.$EventBus.$emit('tableCreateCompleted');
+                this.show_create = false;
             })
             .catch(function(err){
                 alert("테이블 생성에 실패했습니다.");
@@ -275,7 +375,8 @@ export default {
                 console.log(response);
                 // 성공인 경우
                 alert("데이터 삽입에 성공했습니다.");
-                location.reload();
+                this.$EventBus.$emit("dataInsertCompleted");
+                this.show_add = false;
             })
             .catch(function(err){
                 alert("데이터 삽입에 실패했습니다.");
@@ -292,6 +393,66 @@ export default {
         // 테이블 생성 행 삭제
         removeRow: function(index){
             this.params.splice(index, 1);
+        },
+        // 테이블 수정 서브밋
+        editRow: function(){
+
+        },
+        // int(30) 형식에서 int 만 가져오기
+        getType: function(str){
+            var idx = str.indexOf("(");
+            if(idx === -1){
+                // 여는 괄호가 없는 경우
+                idx = str.length;
+            }
+            return str.substring(0, idx).toUpperCase();
+        },
+        // int(30) 형식에서 30만 가져오기
+        getSize: function(str){
+            var startIdx = str.indexOf("(");
+            var endIdx = str.indexOf(")");
+            if(startIdx === -1 && endIdx === -1){
+                // 괄호가 없는 경우
+                return "";
+            }
+            return str.substring(startIdx+1, endIdx);
+        },
+        // edit table 의 row 하나 지우기
+        removeEditRow: function(index){
+            console.log(index);
+
+            this.fieldArr.splice(index, 1);
+
+        }
+    },
+    watch: {
+        fieldArr: function(){
+            this.$nextTick(function () {
+
+                this.editFieldArr = this.fieldArr.map((item, index, thisArr) => {
+                    var originalType = item.Type;
+                    var type = this.getType(originalType);
+                    var size = this.getSize(originalType);
+
+                    // 제약조건 만들기
+                    var constraints = [];
+                    if(item.Key !== undefined){
+                        // Key 필드가 있는 경우
+                        constraints.push({"Key" : item.Key});
+                    }
+                    if(item.Null !== undefined){
+                        // Null 필드가 있는 경우
+                        constraints.push({"Null" : item.Null});
+                    }
+                    if(item.Extra !== undefined){
+                        // Extra 필드가 있는 경우
+                        constraints.push({"Extra" : item.Extra});
+                    }
+                    item.constraints = constraints;
+                    return item;
+                });
+
+            })
         }
     }
 }
@@ -309,15 +470,3 @@ export default {
     box-sizing: border-box;
 }
 </style>
-
-
-
-
-
-{
-    tableName = "aaa",
-    params = [
-        {colname: "col1", type: "int", size: "10", constraints: ["primary key", "not null", "auto_increment"]},
-        {colname: "col1", type: "int", size: "10"}
-    ]
-}

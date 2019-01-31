@@ -154,7 +154,8 @@ export default {
                 console.log(response);
                 if(response.data.affectedRows === 1){
                     alert("성공적으로 수정되었습니다.");
-                    location.reload();
+                    this.$EventBus.$emit("dataUpdateCompleted");
+                    this.show_edit = false;
                 }
             })
             .catch(function(err){

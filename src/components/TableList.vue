@@ -59,6 +59,25 @@ export default {
         changeCompleted: function(){
             this.getTableInfo(this.tableName);    
         }
+    },
+    created: function(){
+        // 테이블 드랍된 경우 발생
+        this.$EventBus.$on("tableDropCompleted", () => {
+            // 이벤트 발생시키기
+            this.$emit("emitTableDesc", []);
+            this.$emit("emitTableData", []);
+            this.$emit("emitTableName", '');
+        });
+        // 데이터가 삽입된 경우 발생
+        this.$EventBus.$on("dataInsertCompleted", () => {
+            // 이벤트 발생시키기
+            this.getTableInfo(this.tableName);
+        });
+        // 데이터가 수정된 경우 발생
+        this.$EventBus.$on("dataUpdateCompleted", () => {
+            // 이벤트 발생시키기
+            this.getTableInfo(this.tableName);
+        });
     }
 }
 </script>
